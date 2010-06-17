@@ -1,6 +1,6 @@
 <?php
 /*
-Plugin Name: Multi Post Thumnails
+Plugin Name: Multiple Post Thumbnails
 Plugin URI: http://vocecommunications.com/
 Description: Adds the ability to add multiple post thumbnails to a post type.
 Version: 0.2
