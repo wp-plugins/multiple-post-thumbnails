@@ -3,7 +3,7 @@
 Plugin Name: Multiple Post Thumbnails
 Plugin URI: http://vocecommunications.com/
 Description: Adds the ability to add multiple post thumbnails to a post type.
-Version: 0.2
+Version: 0.4
 Author: Chris Scott
 Author URI: http://vocecommuncations.com/
 */
