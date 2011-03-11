@@ -2,10 +2,10 @@
 Contributors: chrisscott
 Tags: thumbnails, image
 Requires at least: 2.9.2
-Tested up to: 3.0
-Stable tag: 0.3
+Tested up to: 3.1
+Stable tag: 0.5
 
-Adds the ability to add multiple post thumbnails to a post type. If you've ever wanted more than one Featured Image on a post, this plugin is for you.
+Adds multiple post thumbnails to a post type. If you've ever wanted more than one Featured Image on a post, this plugin is for you.
 
 == Installation ==
 
@@ -13,12 +13,14 @@ Adds the ability to add multiple post thumbnails to a post type. If you've ever 
 2. Activate the plugin through the 'Plugins' menu in WordPress
 3. Register a new thumbnail for the post type you want it active for. If `post_type` is not set it defaults to `post`.
 
-		$thumb = new MultiPostThumbnails(array(
+		if (class_exists('MultiPostThumbnails')) {
+			new MultiPostThumbnails(array(
 			'label' => 'Secondary Image',
 			'id' => 'secondary-image',
-			'post_type' => 'page'
+			'post_type' => 'post'
 			)
 		);
+}
 4. Display the thumbnail in your theme:
 
 		<?php if (class_exists('MultiPostThumbnails')
@@ -26,6 +28,10 @@ Adds the ability to add multiple post thumbnails to a post type. If you've ever 
 				MultiPostThumbnails::the_post_thumbnail('post', 'secondary-image'); endif; ?>
 
 == Frequently Asked Questions ==
+
+= I'm trying to upgrade to a new verions of WordPress and get an error about `MultiPostThumbnails` =
+
+This is caused by using the example in previous readmes that didn't do a check for the `MultiPostThumbnails` class existing first. This has been corrected in the Installation section.
 
 = How do I register the same thumbnail for multiple post types? =
 
@@ -62,6 +68,10 @@ You can register multiple image sizes for a given thumbnail if desired.
 3. Admin meta box with the 'Secondary Image' selected.
 
 == Changelog ==
+
+= 0.4 =
+* Added: optional argument `$link_to_original` to *_the_post_thumbnails template tags. Thanks to gfors for the suggestion.
+* Fixed: PHP warning in media manager due to non-existent object
 
 = 0.3 =
 * Fixed: when displaying the insert link in the media library, check the post_type so it only shows for the registered type.
