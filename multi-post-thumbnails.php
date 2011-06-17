@@ -1,9 +1,9 @@
 <?php
 /*
 Plugin Name: Multiple Post Thumbnails
-Plugin URI: http://vocecommunications.com/
+Plugin URI: http://wordpress.org/extend/plugins/multiple-post-thumbnails/
 Description: Adds the ability to add multiple post thumbnails to a post type.
-Version: 0.2
+Version: 0.6
 Author: Chris Scott
 Author URI: http://vocecommuncations.com/
 */
@@ -121,7 +121,7 @@ if (!class_exists('MultiPostThumbnails')) {
 
 			// check the post type to see if link needs to be added
 			$calling_post = get_post($calling_post_id);
-			if ($calling_post->post_type != $this->post_type) {
+			if ($calling_post && $calling_post->post_type != $this->post_type) {
 				return $form_fields;
 			}
 
@@ -167,29 +167,31 @@ if (!class_exists('MultiPostThumbnails')) {
 		 * Display Post Thumbnail.
 		 *
 		 * @param string $post_type The post type.
-		 * @param string $id The id used to register the thumbnail.
+		 * @param string $thumb_id The id used to register the thumbnail.
 		 * @param string $post_id Optional. Post ID.
 		 * @param int $size Optional. Image size.  Defaults to 'post-thumbnail', which theme sets using set_post_thumbnail_size( $width, $height, $crop_flag );.
 		 * @param string|array $attr Optional. Query string or array of attributes.
+		 * @param bool $link_to_original Optional. Wrap link to original image around thumbnail?
 		 */
-		public static function the_post_thumbnail($post_type, $id, $post_id = null, $size = 'post-thumbnail', $attr = '') {
-			echo self::get_the_post_thumbnail($post_type, $id, $post_id, $size, $attr);
+		public static function the_post_thumbnail($post_type, $thumb_id, $post_id = null, $size = 'post-thumbnail', $attr = '', $link_to_original = false) {
+			echo self::get_the_post_thumbnail($post_type, $thumb_id, $post_id, $size, $attr, $link_to_original);
 		}
 
 		/**
 		 * Retrieve Post Thumbnail.
 		 *
 		 * @param string $post_type The post type.
-		 * @param string $id The id used to register the thumbnail.
+		 * @param string $thumb_id The id used to register the thumbnail.
 		 * @param int $post_id Optional. Post ID.
 		 * @param string $size Optional. Image size.  Defaults to 'thumbnail'.
+		 * @param bool $link_to_original Optional. Wrap link to original image around thumbnail?
 		 * @param string|array $attr Optional. Query string or array of attributes.
 		  */
-		public static function get_the_post_thumbnail($post_type, $thumb_id, $post_id = NULL, $size = 'post-thumbnail', $attr = '' ) {
+		public static function get_the_post_thumbnail($post_type, $thumb_id, $post_id = NULL, $size = 'post-thumbnail', $attr = '' , $link_to_original = false) {
 			global $id;
 			$post_id = (NULL === $post_id) ? $id : $post_id;
 			$post_thumbnail_id = self::get_post_thumbnail_id($post_type, $thumb_id, $post_id);
-			$size = apply_filters("{$post_type}_{$id}_thumbnail_size", $size);
+			$size = apply_filters("{$post_type}_{$post_id}_thumbnail_size", $size);
 			if ($post_thumbnail_id) {
 				do_action("begin_fetch_multi_{$post_type}_thumbnail_html", $post_id, $post_thumbnail_id, $size); // for "Just In Time" filtering of all of wp_get_attachment_image()'s filters
 				$html = wp_get_attachment_image( $post_thumbnail_id, $size, false, $attr );
@@ -197,7 +199,12 @@ if (!class_exists('MultiPostThumbnails')) {
 			} else {
 				$html = '';
 			}
-			return apply_filters("{$post_type}_{$id}_thumbnail_html", $html, $post_id, $post_thumbnail_id, $size, $attr);
+
+			if ($link_to_original) {
+				$html = sprintf('<a href="%s">%s</a>', wp_get_attachment_url($post_thumbnail_id), $html);
+			}
+
+			return apply_filters("{$post_type}_{$thumb_id}_thumbnail_html", $html, $post_id, $post_thumbnail_id, $size, $attr);
 		}
 
 		/**
