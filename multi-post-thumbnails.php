@@ -3,7 +3,7 @@
 Plugin Name: Multiple Post Thumbnails
 Plugin URI: http://wordpress.org/extend/plugins/multiple-post-thumbnails/
 Description: Adds the ability to add multiple post thumbnails to a post type.
-Version: 0.6
+Version: 0.7
 Author: Chris Scott
 Author URI: http://vocecommuncations.com/
 */
@@ -79,6 +79,10 @@ if (!class_exists('MultiPostThumbnails')) {
 				add_theme_support( 'post-thumbnails' );
 			}
 
+			add_action('init', array($this, 'action_init'));
+		}
+
+		public function action_init() {
 			add_action('add_meta_boxes', array($this, 'add_metabox'));
 			add_filter('attachment_fields_to_edit', array($this, 'add_attachment_field'), 20, 2);
 			add_action('admin_init', array($this, 'enqueue_admin_scripts'));
@@ -121,7 +125,7 @@ if (!class_exists('MultiPostThumbnails')) {
 
 			// check the post type to see if link needs to be added
 			$calling_post = get_post($calling_post_id);
-			if ($calling_post && $calling_post->post_type != $this->post_type) {
+			if (is_null($calling_post) || $calling_post->post_type != $this->post_type) {
 				return $form_fields;
 			}
 
@@ -140,7 +144,29 @@ if (!class_exists('MultiPostThumbnails')) {
 		 * @return void
 		 */
 		public function enqueue_admin_scripts() {
-			wp_enqueue_script("featured-image-custom", plugins_url(basename(dirname(__FILE__)) . '/js/multi-post-thumbnails-admin.js'), array('jquery'));
+			wp_enqueue_script("featured-image-custom", $this->plugins_url('js/multi-post-thumbnails-admin.js', __FILE__), array('jquery'));
+		}
+
+		private function plugins_url($relative_path, $plugin_path) {
+			$template_dir = get_template_directory();
+
+			foreach ( array('template_dir', 'plugin_path') as $var ) {
+				$$var = str_replace('\\' ,'/', $$var); // sanitize for Win32 installs
+				$$var = preg_replace('|/+|', '/', $$var);
+			}
+			if(0 === strpos($plugin_path, $template_dir)) {
+				$url = get_template_directory_uri();
+				$folder = str_replace($template_dir, '', dirname($plugin_path));
+				if ( '.' != $folder ) {
+					$url .= '/' . ltrim($folder, '/');
+				}
+				if ( !empty($relative_path) && is_string($relative_path) && strpos($relative_path, '..') === false ) {
+					$url .= '/' . ltrim($relative_path, '/');
+				}
+				return $url;
+			} else {
+				return plugins_url($relative_path, $plugin_path);
+			}
 		}
 
 		/**
