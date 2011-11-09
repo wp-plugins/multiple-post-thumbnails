@@ -3,7 +3,7 @@
 Plugin Name: Multiple Post Thumbnails
 Plugin URI: http://wordpress.org/extend/plugins/multiple-post-thumbnails/
 Description: Adds the ability to add multiple post thumbnails to a post type.
-Version: 0.7
+Version: 0.8
 Author: Chris Scott
 Author URI: http://vocecommuncations.com/
 */
@@ -79,10 +79,6 @@ if (!class_exists('MultiPostThumbnails')) {
 				add_theme_support( 'post-thumbnails' );
 			}
 
-			add_action('init', array($this, 'action_init'));
-		}
-
-		public function action_init() {
 			add_action('add_meta_boxes', array($this, 'add_metabox'));
 			add_filter('attachment_fields_to_edit', array($this, 'add_attachment_field'), 20, 2);
 			add_action('admin_init', array($this, 'enqueue_admin_scripts'));
