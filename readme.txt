@@ -3,7 +3,7 @@ Contributors: chrisscott
 Tags: thumbnails, image
 Requires at least: 2.9.2
 Tested up to: 3.2.1
-Stable tag: 0.7
+Stable tag: 0.9
 
 Adds multiple post thumbnails to a post type. If you've ever wanted more than one Featured Image on a post, this plugin is for you.
 
@@ -53,11 +53,11 @@ You can loop through an array of the post types:
 
 After you have registered a new post thumbnail, register a new image size for it. e.g if your post thumbnail `id` is `secondary-image` and it is for a `post`, it probably makes sense to use something like:
 
-	`add_image_size('post-secondary-image-thumbnail', 250, 150);`
+`add_image_size('post-secondary-image-thumbnail', 250, 150);`
 
 This will register a new image size of 250x150 px. Then, when you display the thumbnail in your theme, update the call to `MultiPostThumbnails::the_post_thumbnail()` to pass in the image size:
 
-	`MultiPostThumbnails::the_post_thumbnail('post', 'secondary-image', NULL,  'post-secondary-image-thumbnail');`
+`MultiPostThumbnails::the_post_thumbnail('post', 'secondary-image', NULL,  'post-secondary-image-thumbnail');`
 
 You can register multiple image sizes for a given thumbnail if desired.
 
@@ -69,7 +69,13 @@ You can register multiple image sizes for a given thumbnail if desired.
 
 == Changelog ==
 
-= 0.7 +
+= 0.9 =
+* Increment version only to attempt to get plugin versions back in sync.
+
+= 0.8 =
+* Revert init action changes from 0.7. Fixes admin metaboxes not showing when the MultiPostThumbnails class is instantiated in an action instead of `functions.php`
+
+= 0.7 =
 * Add actions/filters on init action. Should fix admin metaboxes not showing or showing out of order. props arizzitano.
 
 = 0.6 =
