@@ -3,7 +3,7 @@ Contributors: chrisscott
 Tags: thumbnails, image
 Requires at least: 2.9.2
 Tested up to: 3.2.1
-Stable tag: 0.8
+Stable tag: 0.9
 
 Adds multiple post thumbnails to a post type. If you've ever wanted more than one Featured Image on a post, this plugin is for you.
 
@@ -68,6 +68,9 @@ You can register multiple image sizes for a given thumbnail if desired.
 3. Admin meta box with the 'Secondary Image' selected.
 
 == Changelog ==
+
+= 0.9 =
+* Increment version only to attempt to get plugin versions back in sync.
 
 = 0.8 =
 * Revert init action changes from 0.7. Fixes admin metaboxes not showing when the MultiPostThumbnails class is instantiated in an action instead of `functions.php`
