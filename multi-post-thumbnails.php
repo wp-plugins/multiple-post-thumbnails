@@ -248,11 +248,28 @@ if (!class_exists('MultiPostThumbnails')) {
 		 *
 		 * @param string $post_type The post type.
 		 * @param string $id The id used to register the thumbnail.
-		 * @param int $post_id Optional. Post ID.
+		 * @param int $post_id Post ID.
 		 * @return int
 		 */
 		public static function get_post_thumbnail_id($post_type, $id, $post_id) {
 			return get_post_meta($post_id, "{$post_type}_{$id}_thumbnail_id", true);
+		}
+
+		/**
+		 *
+		 * @param string $post_type The post type.
+		 * @param string $id The id used to register the thumbnail.
+		 * @param int $post_id Optional. The post ID. If not set, will attempt to get it.
+		 * @return mixed Thumbnail url or false if the post doesn't have a thumbnail for the given post type, and id.
+		 */
+		public static function get_post_thumbnail_url($post_type, $id, $post_id = 0) {
+			if (!$post_id) {
+				$post_id = get_the_ID();
+			}
+
+			$post_thumbnail_id = self::get_post_thumbnail_id($post_type, $id, $post_id);
+
+			return wp_get_attachment_url($post_thumbnail_id);
 		}
 
 		/**
