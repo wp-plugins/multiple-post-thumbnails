@@ -225,7 +225,7 @@ if (!class_exists('MultiPostThumbnails')) {
 		  */
 		public static function get_the_post_thumbnail($post_type, $thumb_id, $post_id = NULL, $size = 'post-thumbnail', $attr = '' , $link_to_original = false) {
 			global $id;
-			$post_id = (NULL === $post_id) ? $id : $post_id;
+			$post_id = (NULL === $post_id) ? get_the_ID() : $post_id;
 			$post_thumbnail_id = self::get_post_thumbnail_id($post_type, $thumb_id, $post_id);
 			$size = apply_filters("{$post_type}_{$post_id}_thumbnail_size", $size);
 			if ($post_thumbnail_id) {
