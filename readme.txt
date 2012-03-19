@@ -3,7 +3,7 @@ Contributors: chrisscott
 Tags: thumbnails, image
 Requires at least: 2.9.2
 Tested up to: 3.2.1
-Stable tag: 0.9
+Stable tag: 1.0 
 
 Adds multiple post thumbnails to a post type. If you've ever wanted more than one Featured Image on a post, this plugin is for you.
 
@@ -13,14 +13,14 @@ Adds multiple post thumbnails to a post type. If you've ever wanted more than on
 2. Activate the plugin through the 'Plugins' menu in WordPress
 3. Register a new thumbnail for the post type you want it active for. If `post_type` is not set it defaults to `post`.
 
-	if (class_exists('MultiPostThumbnails')) {
-			new MultiPostThumbnails(array(
-			'label' => 'Secondary Image',
-			'id' => 'secondary-image',
-			'post_type' => 'post'
-			)
-		);
-	}
+		if (class_exists('MultiPostThumbnails')) {
+				new MultiPostThumbnails(array(
+				'label' => 'Secondary Image',
+				'id' => 'secondary-image',
+				'post_type' => 'post'
+				)
+			);
+		}
 4. Display the thumbnail in your theme:
 
 		<?php if (class_exists('MultiPostThumbnails')
@@ -68,6 +68,10 @@ You can register multiple image sizes for a given thumbnail if desired.
 3. Admin meta box with the 'Secondary Image' selected.
 
 == Changelog ==
+
+= 1.0 =
+
+* Use `get_the_ID()` in `get_the_post_thumbnail`. Props helgatheviking.
 
 = 0.9 =
 * Increment version only to attempt to get plugin versions back in sync.
