@@ -3,9 +3,9 @@
 Plugin Name: Multiple Post Thumbnails
 Plugin URI: http://wordpress.org/extend/plugins/multiple-post-thumbnails/
 Description: Adds the ability to add multiple post thumbnails to a post type.
-Version: 1.3
+Version: 1.4
 Author: Chris Scott
-Author URI: http://vocecommuncations.com/
+Author URI: http://voceplatforms.com/
 */
 
 /*  Copyright 2010 Chris Scott (cscott@voceconnect.com)
@@ -82,6 +82,8 @@ if (!class_exists('MultiPostThumbnails')) {
 			add_action('add_meta_boxes', array($this, 'add_metabox'));
 			add_filter('attachment_fields_to_edit', array($this, 'add_attachment_field'), 20, 2);
 			add_action('admin_enqueue_scripts', array($this, 'enqueue_admin_scripts'));
+			add_action('admin_print_styles-post-new.php', array($this, 'hide_media_sidebar_fields'));
+			add_action('admin_print_styles-post.php', array($this, 'hide_media_sidebar_fields'));
 			add_action("wp_ajax_set-{$this->post_type}-{$this->id}-thumbnail", array($this, 'set_thumbnail'));
 			add_action('delete_attachment', array($this, 'action_delete_attachment'));
 		}
@@ -129,8 +131,14 @@ if (!class_exists('MultiPostThumbnails')) {
 				return $form_fields;
 			}
 
+			$referer = wp_get_referer();
+			$query_vars = wp_parse_args(parse_url($referer, PHP_URL_QUERY));
+			
+			if( (isset($_REQUEST['context']) && $_REQUEST['context'] != $this->id) || (isset($query_vars['context']) && $query_vars['context'] != $this->id) )
+				return $form_fields;
+
 			$ajax_nonce = wp_create_nonce("set_post_thumbnail-{$this->post_type}-{$this->id}-{$calling_post_id}");
-			$link = sprintf('<a id="%4$s-%1$s-thumbnail-%2$s" class="%1$s-thumbnail" href="#" onclick="MultiPostThumbnailsSetAsThumbnail(\'%2$s\', \'%1$s\', \'%4$s\', \'%5$s\');return false;">Set as %3$s</a>', $this->id, $post->ID, $this->label, $this->post_type, $ajax_nonce);
+			$link = sprintf('<a id="%4$s-%1$s-thumbnail-%2$s" class="%1$s-thumbnail" href="#" onclick="MultiPostThumbnails.setAsThumbnail(\'%2$s\', \'%1$s\', \'%4$s\', \'%5$s\');return false;">Set as %3$s</a>', $this->id, $post->ID, $this->label, $this->post_type, $ajax_nonce);
 			$form_fields["{$this->post_type}-{$this->id}-thumbnail"] = array(
 				'label' => $this->label,
 				'input' => 'html',
@@ -150,6 +158,10 @@ if (!class_exists('MultiPostThumbnails')) {
 
 			add_thickbox();
 			wp_enqueue_script( "featured-image-custom", $this->plugins_url( 'js/multi-post-thumbnails-admin.js', __FILE__ ), array( 'jquery', 'media-upload' ) );
+		}
+		
+		public function hide_media_sidebar_fields () {
+			echo sprintf('<style type="text/css">.media-sidebar tr.compat-field-%s-%s-thumbnail {display: none;}</style>', $this->post_type, $this->id);
 		}
 
 		/**
@@ -288,8 +300,10 @@ if (!class_exists('MultiPostThumbnails')) {
 		 */
 		private function post_thumbnail_html($thumbnail_id = null) {
 			global $content_width, $_wp_additional_image_sizes, $post_ID;
-
-			$set_thumbnail_link = sprintf('<p class="hide-if-no-js"><a title="%1$s" href="%2$s" id="set-%3$s-%4$s-thumbnail" class="thickbox">%%s</a></p>', esc_attr__( "Set {$this->label}" ), get_upload_iframe_src('image'), $this->post_type, $this->id);
+			$image_library_url = get_upload_iframe_src('image');
+			 // if TB_iframe is not moved to end of query string, thickbox will remove all query args after it.
+			$image_library_url = add_query_arg( array( 'context' => $this->id, 'TB_iframe' => 1 ), remove_query_arg( 'TB_iframe', $image_library_url ) );
+			$set_thumbnail_link = sprintf('<p class="hide-if-no-js"><a title="%1$s" href="%2$s" id="set-%3$s-%4$s-thumbnail" class="thickbox">%%s</a></p>', esc_attr__( "Set {$this->label}" ), $image_library_url, $this->post_type, $this->id);
 			$content = sprintf($set_thumbnail_link, esc_html__( "Set {$this->label}" ));
 
 
@@ -303,7 +317,7 @@ if (!class_exists('MultiPostThumbnails')) {
 				if (!empty($thumbnail_html)) {
 					$ajax_nonce = wp_create_nonce("set_post_thumbnail-{$this->post_type}-{$this->id}-{$post_ID}");
 					$content = sprintf($set_thumbnail_link, $thumbnail_html);
-					$content .= sprintf('<p class="hide-if-no-js"><a href="#" id="remove-%1$s-%2$s-thumbnail" onclick="MultiPostThumbnailsRemoveThumbnail(\'%2$s\', \'%1$s\', \'%4$s\');return false;">%3$s</a></p>', $this->post_type, $this->id, esc_html__( "Remove {$this->label}" ), $ajax_nonce);
+					$content .= sprintf('<p class="hide-if-no-js"><a href="#" id="remove-%1$s-%2$s-thumbnail" onclick="MultiPostThumbnails.removeThumbnail(\'%2$s\', \'%1$s\', \'%4$s\');return false;">%3$s</a></p>', $this->post_type, $this->id, esc_html__( "Remove {$this->label}" ), $ajax_nonce);
 				}
 				$content_width = $old_content_width;
 			}
@@ -333,12 +347,25 @@ if (!class_exists('MultiPostThumbnails')) {
 			if ($thumbnail_id && get_post($thumbnail_id)) {
 				$thumbnail_html = wp_get_attachment_image($thumbnail_id, 'thumbnail');
 				if (!empty($thumbnail_html)) {
-					update_post_meta($post_ID, "{$this->post_type}_{$this->id}_thumbnail_id", $thumbnail_id);
+					$this->set_meta($post_ID, $this->post_type, $this->id, $thumbnail_id);
 					die($this->post_thumbnail_html($thumbnail_id));
 				}
 			}
 
 			die('0');
+		}
+		
+		/**
+		 * set thumbnail meta
+		 * 
+		 * @param int $post_ID
+		 * @param string $post_type
+		 * @param string $thumbnail_id ID used to register the thumbnail
+		 * @param int $thumbnail_post_id ID of the attachment to use as the thumbnail
+		 * @return bool result of update_post_meta
+		 */
+		public static function set_meta($post_ID, $post_type, $thumbnail_id, $thumbnail_post_id) {
+			return update_post_meta($post_ID, "{$post_type}_{$thumbnail_id}_thumbnail_id", $thumbnail_post_id);
 		}
 
 	}
