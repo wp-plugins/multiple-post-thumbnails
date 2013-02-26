@@ -3,7 +3,7 @@
 Plugin Name: Multiple Post Thumbnails
 Plugin URI: http://wordpress.org/extend/plugins/multiple-post-thumbnails/
 Description: Adds the ability to add multiple post thumbnails to a post type.
-Version: 1.4
+Version: 1.5
 Author: Chris Scott
 Author URI: http://voceplatforms.com/
 */
@@ -46,7 +46,9 @@ if (!class_exists('MultiPostThumbnails')) {
 		 *
 		 * post_type - The post type to register this thumbnail for. Defaults to post.
 		 *
-		 * priority - The admin metabox priority. Defaults to low to show after normal post thumbnail meta box.
+		 * priority - The admin metabox priority. Defaults to 'low'.
+		 * 
+		 * context - The admin metabox context. Defaults to 'side'.
 		 *
 		 * @param array|string $args See above description.
 		 * @return void
@@ -57,6 +59,7 @@ if (!class_exists('MultiPostThumbnails')) {
 				'id' => null,
 				'post_type' => 'post',
 				'priority' => 'low',
+				'context' => 'side',
 			);
 
 			$args = wp_parse_args($args, $defaults);
@@ -69,7 +72,7 @@ if (!class_exists('MultiPostThumbnails')) {
 			// Need these args to be set at a minimum
 			if (null === $this->label || null === $this->id) {
 				if (WP_DEBUG) {
-					trigger_error(sprintf("The 'label' and 'id' values of the 'args' parameter of '%s::%s()' are required", __CLASS__, __FUNCTION__));
+					trigger_error(sprintf(__("The 'label' and 'id' values of the 'args' parameter of '%s::%s()' are required", 'multiple-post-thumbnails'), __CLASS__, __FUNCTION__));
 				}
 				return;
 			}
@@ -86,6 +89,16 @@ if (!class_exists('MultiPostThumbnails')) {
 			add_action('admin_print_styles-post.php', array($this, 'hide_media_sidebar_fields'));
 			add_action("wp_ajax_set-{$this->post_type}-{$this->id}-thumbnail", array($this, 'set_thumbnail'));
 			add_action('delete_attachment', array($this, 'action_delete_attachment'));
+			add_filter('is_protected_meta', array($this, 'filter_is_protected_meta'), 20, 2);
+		}
+		
+		/**
+		 * get the meta key used to store a post's thumbnail
+		 * 
+		 * @return string 
+		 */
+		public function get_meta_key() {
+			return "{$this->post_type}_{$this->id}_thumbnail_id";
 		}
 
 		/**
@@ -94,7 +107,7 @@ if (!class_exists('MultiPostThumbnails')) {
 		 * @return void
 		 */
 		public function add_metabox() {
-			add_meta_box("{$this->post_type}-{$this->id}", __($this->label), array($this, 'thumbnail_meta_box'), $this->post_type, 'side', $this->priority);
+			add_meta_box("{$this->post_type}-{$this->id}", __($this->label, 'multiple-post-thumbnails'), array($this, 'thumbnail_meta_box'), $this->post_type, $this->context, $this->priority);
 		}
 
 		/**
@@ -104,7 +117,7 @@ if (!class_exists('MultiPostThumbnails')) {
 		 */
 		public function thumbnail_meta_box() {
 			global $post;
-			$thumbnail_id = get_post_meta($post->ID, "{$this->post_type}_{$this->id}_thumbnail_id", true);
+			$thumbnail_id = get_post_meta($post->ID, $this->get_meta_key(), true);
 			echo $this->post_thumbnail_html($thumbnail_id);
 		}
 
@@ -121,7 +134,7 @@ if (!class_exists('MultiPostThumbnails')) {
 				$calling_post_id = absint($_GET['post_id']);
 			elseif (isset($_POST) && count($_POST)) // Like for async-upload where $_GET['post_id'] isn't set
 				$calling_post_id = $post->post_parent;
-			
+
 			if (!$calling_post_id)
 				return $form_fields;
 
@@ -138,7 +151,7 @@ if (!class_exists('MultiPostThumbnails')) {
 				return $form_fields;
 
 			$ajax_nonce = wp_create_nonce("set_post_thumbnail-{$this->post_type}-{$this->id}-{$calling_post_id}");
-			$link = sprintf('<a id="%4$s-%1$s-thumbnail-%2$s" class="%1$s-thumbnail" href="#" onclick="MultiPostThumbnails.setAsThumbnail(\'%2$s\', \'%1$s\', \'%4$s\', \'%5$s\');return false;">Set as %3$s</a>', $this->id, $post->ID, $this->label, $this->post_type, $ajax_nonce);
+			$link = sprintf('<a id="%4$s-%1$s-thumbnail-%2$s" class="%1$s-thumbnail" href="#" onclick="MultiPostThumbnails.setAsThumbnail(\'%2$s\', \'%1$s\', \'%4$s\', \'%5$s\');return false;">' . __( 'Set as %3$s', 'multiple-post-thumbnails' ) . '</a>', $this->id, $post->ID, $this->label, $this->post_type, $ajax_nonce);
 			$form_fields["{$this->post_type}-{$this->id}-thumbnail"] = array(
 				'label' => $this->label,
 				'input' => 'html',
@@ -173,8 +186,27 @@ if (!class_exists('MultiPostThumbnails')) {
 		 */
 		public function action_delete_attachment($post_id) {
 			global $wpdb;
-			$meta_key = "{$this->post_type}_{$this->id}_thumbnail_id";
-			$wpdb->query( $wpdb->prepare( "DELETE FROM $wpdb->postmeta WHERE meta_key = '%s' AND meta_value = %d", $meta_key, $post_id ));
+
+			$wpdb->query( $wpdb->prepare( "DELETE FROM $wpdb->postmeta WHERE meta_key = '%s' AND meta_value = %d", $this->get_meta_key(), $post_id ));
+		}
+		
+		/**
+		 * make the meta for storing thumbnails protected so it doesn't show in the Custom Fields metabox
+		 * 
+		 * @param boolean $protected Passed in from filter
+		 * @param type $meta_key Passed in from filter
+		 * @return boolean 
+		 */
+		public function filter_is_protected_meta($protected, $meta_key) {
+			if (apply_filters('mpt_unprotect_meta', false)) {
+				return $protected;
+			}
+			
+			if ($meta_key == $this->get_meta_key()) {
+				$protected = true;
+			}
+			
+			return $protected;
 		}
 
 		private function plugins_url($relative_path, $plugin_path) {
@@ -280,16 +312,27 @@ if (!class_exists('MultiPostThumbnails')) {
 		 * @param string $post_type The post type.
 		 * @param string $id The id used to register the thumbnail.
 		 * @param int $post_id Optional. The post ID. If not set, will attempt to get it.
+		 * @param string $size Optional. The thumbnail size to use. If set, use wp_get_attachment_image_src() instead of wp_get_attachment_url()
 		 * @return mixed Thumbnail url or false if the post doesn't have a thumbnail for the given post type, and id.
 		 */
-		public static function get_post_thumbnail_url($post_type, $id, $post_id = 0) {
+		public static function get_post_thumbnail_url($post_type, $id, $post_id = 0, $size = null) {
 			if (!$post_id) {
 				$post_id = get_the_ID();
 			}
 
 			$post_thumbnail_id = self::get_post_thumbnail_id($post_type, $id, $post_id);
 
-			return wp_get_attachment_url($post_thumbnail_id);
+			if ($size) {
+				if ($url = wp_get_attachment_image_src($post_thumbnail_id, $size)) {
+					$url = $url[0];
+				} else {
+					$url = '';
+				}
+			} else {
+				$url = wp_get_attachment_url($post_thumbnail_id);
+			}
+
+			return $url;
 		}
 
 		/**
@@ -303,8 +346,9 @@ if (!class_exists('MultiPostThumbnails')) {
 			$image_library_url = get_upload_iframe_src('image');
 			 // if TB_iframe is not moved to end of query string, thickbox will remove all query args after it.
 			$image_library_url = add_query_arg( array( 'context' => $this->id, 'TB_iframe' => 1 ), remove_query_arg( 'TB_iframe', $image_library_url ) );
-			$set_thumbnail_link = sprintf('<p class="hide-if-no-js"><a title="%1$s" href="%2$s" id="set-%3$s-%4$s-thumbnail" class="thickbox">%%s</a></p>', esc_attr__( "Set {$this->label}" ), $image_library_url, $this->post_type, $this->id);
-			$content = sprintf($set_thumbnail_link, esc_html__( "Set {$this->label}" ));
+			$format_string = '<p class="hide-if-no-js"><a title="%1$s" href="%2$s" id="set-%3$s-%4$s-thumbnail" class="thickbox">%%s</a></p>';
+			$set_thumbnail_link = sprintf( $format_string, sprintf( esc_attr__( "Set %s" , 'multiple-post-thumbnails' ), $this->label ), $image_library_url, $this->post_type, $this->id );
+			$content = sprintf( $set_thumbnail_link, sprintf( esc_html__( "Set %s", 'multiple-post-thumbnails' ), $this->label ) );
 
 
 			if ($thumbnail_id && get_post($thumbnail_id)) {
@@ -317,7 +361,8 @@ if (!class_exists('MultiPostThumbnails')) {
 				if (!empty($thumbnail_html)) {
 					$ajax_nonce = wp_create_nonce("set_post_thumbnail-{$this->post_type}-{$this->id}-{$post_ID}");
 					$content = sprintf($set_thumbnail_link, $thumbnail_html);
-					$content .= sprintf('<p class="hide-if-no-js"><a href="#" id="remove-%1$s-%2$s-thumbnail" onclick="MultiPostThumbnails.removeThumbnail(\'%2$s\', \'%1$s\', \'%4$s\');return false;">%3$s</a></p>', $this->post_type, $this->id, esc_html__( "Remove {$this->label}" ), $ajax_nonce);
+					$format_string = '<p class="hide-if-no-js"><a href="#" id="remove-%1$s-%2$s-thumbnail" onclick="MultiPostThumbnails.removeThumbnail(\'%2$s\', \'%1$s\', \'%4$s\');return false;">%3$s</a></p>';
+					$content .= sprintf( $format_string, $this->post_type, $this->id, sprintf( esc_html__( "Remove %s", 'multiple-post-thumbnails' ), $this->label ), $ajax_nonce );
 				}
 				$content_width = $old_content_width;
 			}
@@ -340,7 +385,7 @@ if (!class_exists('MultiPostThumbnails')) {
 			check_ajax_referer("set_post_thumbnail-{$this->post_type}-{$this->id}-{$post_ID}");
 
 			if ($thumbnail_id == '-1') {
-				delete_post_meta($post_ID, "{$this->post_type}_{$this->id}_thumbnail_id");
+				delete_post_meta($post_ID, $this->get_meta_key());
 				die($this->post_thumbnail_html(null));
 			}
 
@@ -369,4 +414,7 @@ if (!class_exists('MultiPostThumbnails')) {
 		}
 
 	}
+
+	if ( is_admin() )
+		load_plugin_textdomain( 'multiple-post-thumbnails', FALSE, 'multi-post-thumbnails/languages/' );
 }
