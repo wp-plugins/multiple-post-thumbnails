@@ -2,7 +2,7 @@
 Contributors: chrisscott, voceplatforms
 Tags: thumbnails, image, featured image
 Requires at least: 2.9.2
-Tested up to: 3.5.1
+Tested up to: 3.9.1
 Stable tag: 1.6
 
 Adds multiple post thumbnails to a post type. If you've ever wanted more than one Featured Image on a post, this plugin is for you.
@@ -26,7 +26,11 @@ Adds multiple post thumbnails to a post type. If you've ever wanted more than on
 
             <?php if (class_exists('MultiPostThumbnails')) : MultiPostThumbnails::the_post_thumbnail(get_post_type(), 'secondary-image'); endif; ?>
 
+For more, read the full documentation: http://voceconnect.github.io/multi-post-thumbnails/
+
 == Frequently Asked Questions ==
+
+See the full documentation for more: http://voceconnect.github.io/multi-post-thumbnails/
 
 = I'm trying to upgrade to a new versions of WordPress and get an error about `MultiPostThumbnails` =
 
